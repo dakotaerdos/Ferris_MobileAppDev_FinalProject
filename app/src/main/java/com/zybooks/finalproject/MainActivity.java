@@ -1,3 +1,10 @@
+/*
+Dakota Erdos
+Travis Bussler
+Final Project Fall 2020
+Mobile Application Development
+ */
+
 package com.zybooks.finalproject;
 
 import androidx.annotation.NonNull;
@@ -13,12 +20,19 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -27,16 +41,21 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_WRITE_PERMISSION = 1;
 
     private String fileName = null;
-    private File pubDocDir;
-    private File pubAudioDir;
+    // private File pubDocDir;
+    // private File pubAudioDir;
     private File outputFile;
     private boolean isFileCreated;
+    private DateFormat dateFormatter;
 
     private MediaRecorder recorder = null;
     private MediaPlayer player = null;
 
     private Button btnRecord = null;
     private Button btnPlay = null;
+
+    private Spinner spinnerAudioSelect = null;
+    ArrayAdapter<String> adapter;
+    ArrayList<String> filesList;
 
     boolean mStartRecording = false;
     boolean mStartPlaying = false;
@@ -46,7 +65,39 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        fileName = "/testAudioRecord.mp4";
+        dateFormatter = new SimpleDateFormat("yyyy-MM-dd-HHmmss", Locale.US);
+
+        spinnerAudioSelect = findViewById(R.id.SpinAudioSelect);
+
+        File file = new File(getApplicationContext().getFilesDir().getAbsolutePath());
+        File[] fileNames = file.listFiles();
+
+        filesList = new ArrayList<>();
+
+        assert fileNames != null;
+        if (fileNames.length != 0) {
+            for (File name : fileNames) {
+                filesList.add(name.getName());
+            }
+        }
+
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, filesList);
+
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerAudioSelect.setAdapter(adapter);
+        spinnerAudioSelect.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                fileName = parent.getItemAtPosition(position).toString();
+                outputFile = new File(getApplicationContext().getFilesDir(), fileName);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+
 
         btnRecord = findViewById(R.id.btnRecord);
         btnRecord.setText(R.string.start_recording);
@@ -115,11 +166,13 @@ public class MainActivity extends AppCompatActivity {
     private boolean hasFile() {
         isFileCreated = false;
         if (hasWriteFilePermission()) {
-            String folder = "AudioRecordings";
             String state = Environment.getExternalStorageState();
             if (Environment.MEDIA_MOUNTED.equals(state)) {
 
-                /*pubDocDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
+                /*
+                String folder = "AudioRecordings";
+
+                pubDocDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
 
                 if (!pubDocDir.exists()) {
                     pubDocDir.mkdir();
@@ -128,7 +181,10 @@ public class MainActivity extends AppCompatActivity {
                 pubAudioDir = new File(pubDocDir, folder);
                 if (!pubAudioDir.exists()) {
                     pubAudioDir.mkdir();
-                }*/
+                }
+                */
+
+                fileName = "AudioRecording_" + dateFormatter.format(Calendar.getInstance().getTime()) + ".mp4";
 
                 outputFile = new File(getApplicationContext().getFilesDir(), fileName);
 
@@ -167,6 +223,7 @@ public class MainActivity extends AppCompatActivity {
                 recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
 
                 try {
+                    btnPlay.setClickable(false);
                     recorder.prepare();
                     recorder.start();
 
@@ -180,6 +237,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void stopRecording() {
         try {
+            btnPlay.setClickable(true);
             recorder.stop();
             recorder.release();
             recorder = null;
@@ -187,7 +245,11 @@ public class MainActivity extends AppCompatActivity {
             Log.e("stopRecording()", "stopRecording: ", e);
         }
 
-        // TODO: Add code to change file name here on stop
+        filesList.add(outputFile.getName());
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, filesList);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerAudioSelect.setAdapter(adapter);
+
     }
 
     private void onPlay(boolean start) {
@@ -201,15 +263,18 @@ public class MainActivity extends AppCompatActivity {
     private void startPlaying() {
         player = new MediaPlayer();
         try {
+            btnRecord.setClickable(false);
             player.setDataSource(outputFile.getAbsolutePath());
             player.prepare();
             player.start();
         } catch (Exception e) {
-            Log.e(LOG_TAG, "prepare() failed");
+            Log.e(LOG_TAG, "prepare() failed" + e.toString());
+
         }
     }
 
     private void stopPlaying() {
+        btnRecord.setClickable(true);
         player.release();
         player = null;
     }
