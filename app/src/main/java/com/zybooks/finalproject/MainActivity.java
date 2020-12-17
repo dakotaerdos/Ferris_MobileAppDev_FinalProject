@@ -41,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_WRITE_PERMISSION = 1;
 
     private String fileName = null;
+    // Lower Api Level Variables - Not currently being used
     // private File pubDocDir;
     // private File pubAudioDir;
     private File outputFile;
@@ -52,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Button btnRecord = null;
     private Button btnPlay = null;
+    private Button btnDelete = null;
 
     private Spinner spinnerAudioSelect = null;
     ArrayAdapter<String> adapter;
@@ -141,6 +143,35 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        btnDelete = findViewById(R.id.btnDelete);
+        btnDelete.setText("Delete Recording");
+        btnDelete.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                outputFile.delete();
+
+                File file = new File(getApplicationContext().getFilesDir().getAbsolutePath());
+                File[] fileNames = file.listFiles();
+
+                filesList = new ArrayList<>();
+
+                assert fileNames != null;
+                if (fileNames.length != 0) {
+                    for (File name : fileNames) {
+                        filesList.add(name.getName());
+                    }
+                }
+
+                UpdateList();
+            }
+        });
+    }
+
+    private void UpdateList() {
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, filesList);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerAudioSelect.setAdapter(adapter);
     }
 
     private boolean hasWriteFilePermission() {
