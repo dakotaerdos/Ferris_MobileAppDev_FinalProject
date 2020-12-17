@@ -33,6 +33,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Locale;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -44,9 +45,10 @@ public class MainActivity extends AppCompatActivity {
     // Lower Api Level Variables - Not currently being used
     // private File pubDocDir;
     // private File pubAudioDir;
-    private File outputFile;
+    private File currentOutputFile;
     private boolean isFileCreated;
     private DateFormat dateFormatter;
+
 
     private MediaRecorder recorder = null;
     private MediaPlayer player = null;
@@ -56,34 +58,34 @@ public class MainActivity extends AppCompatActivity {
     private Button btnDelete = null;
 
     private Spinner spinnerAudioSelect = null;
-    ArrayAdapter<String> adapter;
-    ArrayList<String> filesList;
+    private ArrayAdapter<String> adapter;
+    private ArrayList<String> fileNames;
 
-    boolean mStartRecording = false;
-    boolean mStartPlaying = false;
+    private boolean mStartRecording = false;
+    private boolean mStartPlaying = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        dateFormatter = new SimpleDateFormat("yyyy-MM-dd-HHmmss", Locale.US);
+        dateFormatter = new SimpleDateFormat("yyyy-MM-dd-HH_mm_ss", Locale.US);
 
         spinnerAudioSelect = findViewById(R.id.SpinAudioSelect);
 
         File file = new File(getApplicationContext().getFilesDir().getAbsolutePath());
-        File[] fileNames = file.listFiles();
+        File[] filesList = file.listFiles();
 
-        filesList = new ArrayList<>();
+        fileNames = new ArrayList<>();
 
-        assert fileNames != null;
-        if (fileNames.length != 0) {
-            for (File name : fileNames) {
-                filesList.add(name.getName());
+        assert filesList != null;
+        if (filesList.length != 0) {
+            for (File name : filesList) {
+                fileNames.add(name.getName());
             }
         }
 
-        adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, filesList);
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, fileNames);
 
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerAudioSelect.setAdapter(adapter);
@@ -91,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 fileName = parent.getItemAtPosition(position).toString();
-                outputFile = new File(getApplicationContext().getFilesDir(), fileName);
+                currentOutputFile = new File(getApplicationContext().getFilesDir(), fileName);
             }
 
             @Override
@@ -127,7 +129,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 try {
-                    if (outputFile.exists()) {
+                    if (currentOutputFile.exists()) {
                         mStartPlaying = !mStartPlaying;
 
                         if (mStartPlaying) {
@@ -149,17 +151,17 @@ public class MainActivity extends AppCompatActivity {
         btnDelete.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                outputFile.delete();
+                currentOutputFile.delete();
 
                 File file = new File(getApplicationContext().getFilesDir().getAbsolutePath());
-                File[] fileNames = file.listFiles();
+                File[] filesList = file.listFiles();
 
-                filesList = new ArrayList<>();
+                fileNames = new ArrayList<>();
 
-                assert fileNames != null;
-                if (fileNames.length != 0) {
-                    for (File name : fileNames) {
-                        filesList.add(name.getName());
+                assert filesList != null;
+                if (filesList.length != 0) {
+                    for (File name : filesList) {
+                        fileNames.add(name.getName());
                     }
                 }
 
@@ -169,7 +171,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void UpdateList() {
-        adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, filesList);
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, fileNames);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerAudioSelect.setAdapter(adapter);
     }
@@ -217,11 +219,11 @@ public class MainActivity extends AppCompatActivity {
 
                 fileName = "AudioRecording_" + dateFormatter.format(Calendar.getInstance().getTime()) + ".mp4";
 
-                outputFile = new File(getApplicationContext().getFilesDir(), fileName);
+                currentOutputFile = new File(getApplicationContext().getFilesDir(), fileName);
 
-                if (!outputFile.exists()) {
+                if (!currentOutputFile.exists()) {
                     try {
-                        isFileCreated = outputFile.createNewFile();
+                        isFileCreated = currentOutputFile.createNewFile();
                     } catch (IOException e) {
                         Log.e("hasFile()", "IO Exception Occurred");
                     } catch (SecurityException e) {
@@ -246,11 +248,12 @@ public class MainActivity extends AppCompatActivity {
     private void startRecording() {
         if (hasRecordPermission()) {
             if (hasFile()) {
+                
                 recorder = new MediaRecorder();
                 recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
                 recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-                recorder.setOutputFile(outputFile);
-                Log.d("startRecording()", "startRecording: " + outputFile.getAbsolutePath());
+                recorder.setOutputFile(currentOutputFile);
+                Log.d("startRecording()", "startRecording: " + currentOutputFile.getAbsolutePath());
                 recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
 
                 try {
@@ -276,8 +279,8 @@ public class MainActivity extends AppCompatActivity {
             Log.e("stopRecording()", "stopRecording: ", e);
         }
 
-        filesList.add(outputFile.getName());
-        adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, filesList);
+        fileNames.add(currentOutputFile.getName());
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, fileNames);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerAudioSelect.setAdapter(adapter);
 
@@ -295,7 +298,7 @@ public class MainActivity extends AppCompatActivity {
         player = new MediaPlayer();
         try {
             btnRecord.setClickable(false);
-            player.setDataSource(outputFile.getAbsolutePath());
+            player.setDataSource(currentOutputFile.getAbsolutePath());
             player.prepare();
             player.start();
         } catch (Exception e) {
